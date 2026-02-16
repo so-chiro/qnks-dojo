@@ -370,7 +370,7 @@
       );
       if (!exists) {
         saveStateToHistory();
-        lines.push({ from: ctrlSelectedNoteId, to: noteId });
+        lines.push({ from: ctrlSelectedNoteId, to: noteId, label: '' });
         renderLines();
         autoSave();
         showToast('線を繋げました');
@@ -383,6 +383,9 @@
 
   function renderLines() {
     linesSvg.innerHTML = '';
+    // Remove old line labels
+    canvas.querySelectorAll('.line-label').forEach(el => el.remove());
+
     const canvasRect = getCanvasRect();
     linesSvg.setAttribute('width', canvasRect.width);
     linesSvg.setAttribute('height', canvasRect.height);
@@ -411,7 +414,32 @@
       svgLine.setAttribute('stroke-opacity', '0.6');
       svgLine.setAttribute('stroke-linecap', 'round');
 
-      svgLine.addEventListener('click', () => {
+      linesSvg.appendChild(svgLine);
+
+      // Line label at midpoint
+      const midX = (fromCx + toCx) / 2;
+      const midY = (fromCy + toCy) / 2;
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'line-label';
+      labelEl.style.left = midX + 'px';
+      labelEl.style.top = midY + 'px';
+
+      const labelText = document.createElement('span');
+      labelText.className = 'line-label-text';
+      labelText.textContent = line.label || '＋';
+      if (!line.label) labelText.classList.add('line-label-empty');
+
+      labelText.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showLineLabelEditor(line, idx, labelEl);
+      });
+
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'line-label-delete';
+      deleteBtn.textContent = '×';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         saveStateToHistory();
         lines.splice(idx, 1);
         renderLines();
@@ -419,8 +447,48 @@
         showToast('線を削除しました');
       });
 
-      linesSvg.appendChild(svgLine);
+      labelEl.appendChild(labelText);
+      labelEl.appendChild(deleteBtn);
+      canvas.appendChild(labelEl);
     });
+  }
+
+  function showLineLabelEditor(line, idx, labelEl) {
+    // Remove any existing editor
+    const existing = document.querySelector('.line-label-editor');
+    if (existing) existing.remove();
+
+    const editor = document.createElement('div');
+    editor.className = 'line-label-editor';
+    editor.style.left = labelEl.style.left;
+    editor.style.top = labelEl.style.top;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'line-label-input';
+    input.value = line.label || '';
+    input.placeholder = '接続詞を入力…';
+    input.maxLength = 20;
+
+    const save = () => {
+      saveStateToHistory();
+      line.label = input.value.trim();
+      editor.remove();
+      renderLines();
+      autoSave();
+    };
+
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') save();
+      if (e.key === 'Escape') { editor.remove(); }
+    });
+
+    input.addEventListener('blur', save);
+
+    editor.appendChild(input);
+    canvas.appendChild(editor);
+    setTimeout(() => { input.focus(); input.select(); }, 50);
   }
 
   // ===== Note Operations =====
@@ -896,6 +964,24 @@
     }
 
     btnSubmit.disabled = true;
+    showToast('📸 キャンバスを撮影中...');
+
+    // Capture canvas as image
+    let canvasImage = '';
+    try {
+      const canvasWrapper = document.getElementById('canvas-wrapper');
+      if (canvasWrapper && typeof html2canvas !== 'undefined') {
+        const capturedCanvas = await html2canvas(canvasWrapper, {
+          backgroundColor: '#0f0f1a',
+          scale: 1.5,
+          useCORS: true,
+          logging: false
+        });
+        canvasImage = capturedCanvas.toDataURL('image/png');
+      }
+    } catch (e) {
+      console.warn('Canvas capture failed:', e);
+    }
 
     const payload = {
       name: studentName,
@@ -903,6 +989,7 @@
       keywords: keywords.join('、'),
       summary: summary,
       modelAnswer: lastModelAnswer,
+      canvasImage: canvasImage,
       timestamp: new Date().toLocaleString('ja-JP')
     };
 
