@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QNKS道場</title>
+  <meta name="description" content="QNKS道場 — 思考を整理するインタラクティブ付箋キャンバス。問いを立て、キーワードを整理し、自分の言葉でまとめよう。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Header Toolbar -->
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <span class="logo">🏯 <span class="logo-text">QNKS道場</span></span>
+    </div>
+    <div class="toolbar-center">
+      <div class="toolbar-row">
+        <button id="btn-reset" class="toolbar-btn btn-reset" title="初めからやり直し">
+          <span class="btn-icon">🔄</span>
+          <span class="btn-label">初めからやり直し</span>
+        </button>
+        <button id="btn-undo" class="toolbar-btn btn-undo" title="ひとつ戻る">
+          <span class="btn-icon">👈</span>
+          <span class="btn-label">ひとつ戻る</span>
+        </button>
+        <button id="btn-redo" class="toolbar-btn btn-redo" title="進む">
+          <span class="btn-icon">👉</span>
+          <span class="btn-label">進む</span>
+        </button>
+      </div>
+      <div class="toolbar-row">
+        <button id="btn-shuffle" class="toolbar-btn btn-shuffle" title="バラバラ">
+          <span class="btn-icon">🎲</span>
+          <span class="btn-label">バラバラ</span>
+        </button>
+        <button id="btn-add" class="toolbar-btn btn-add" title="追加">
+          <span class="btn-icon">＋</span>
+          <span class="btn-label">追加</span>
+        </button>
+        <button id="btn-save" class="toolbar-btn btn-save" title="セーブ">
+          <span class="btn-icon">💾</span>
+          <span class="btn-label">セーブ</span>
+        </button>
+        <button id="btn-settings" class="toolbar-btn btn-settings" title="API設定">
+          <span class="btn-icon">⚙️</span>
+          <span class="btn-label">API設定</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Question Bar -->
+  <section id="question-bar">
+    <div class="question-bar-inner">
+      <span class="q-badge">Q</span>
+      <input id="input-q-top" type="text" class="question-input" placeholder="ここに問いを入力してください…">
+      <button id="btn-apply-q-top" class="q-apply-btn">適用</button>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main id="main-content">
+    <!-- Canvas Area -->
+    <div id="canvas-wrapper">
+      <svg id="lines-svg"></svg>
+      <div id="canvas" tabindex="0">
+        <div id="canvas-hint" class="canvas-hint">
+          <span class="hint-icon">👆</span>
+          <p class="hint-title">付箋をドラッグして並び替えよう！</p>
+          <p class="hint-sub">Ctrl+クリックで線を繋げることができます</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-section" id="section-k">
+        <h3 class="sidebar-heading">キーワードを入力</h3>
+        <p class="sidebar-hint">※1行1キーワード</p>
+        <textarea id="input-k" class="sidebar-textarea" placeholder="キーワード1&#10;キーワード2&#10;キーワード3..."
+          rows="8"></textarea>
+        <div class="sidebar-actions">
+          <button id="btn-apply-k" class="sidebar-btn btn-apply">適用</button>
+          <button id="btn-clear-k" class="sidebar-btn btn-clear">クリア</button>
+        </div>
+      </div>
+      <div class="sidebar-section" id="section-ai">
+        <h3 class="sidebar-heading">🤖 AI 模範回答</h3>
+        <button id="btn-generate-answer" class="sidebar-btn btn-ai-generate">模範回答を生成</button>
+        <div id="ai-answer-panel" class="ai-answer-panel">
+          <p class="ai-placeholder">問いとキーワードを入力して「模範回答を生成」を押してください。</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Footer Instruction Bar -->
+  <footer id="footer-bar">
+    <p>👆 ドラッグで移動 | Ctrl+クリックで線 | 線クリックで削除 | ピンク・黄・青付箋は削除可能</p>
+  </footer>
+
+  <!-- Summary Section -->
+  <section id="summary-section">
+    <div class="summary-header">
+      <h3 class="summary-heading"><span class="summary-label">S</span> Qについて自分の言葉で説明しましょう</h3>
+      <div class="summary-actions">
+        <button id="btn-ai-correct" class="summary-action-btn btn-correct">
+          <span>🤖</span> AIで添削
+        </button>
+        <button id="btn-export-csv" class="summary-action-btn btn-export">
+          <span>📊</span> CSV出力
+        </button>
+        <button id="btn-submit" class="summary-action-btn btn-submit">
+          <span>📤</span> 提出
+        </button>
+      </div>
+    </div>
+    <textarea id="input-s" class="summary-textarea" placeholder="ここに入力..."></textarea>
+    <div id="correction-panel" class="correction-panel" style="display:none;">
+      <div class="correction-header">
+        <h4 class="correction-title">📝 AI 添削結果</h4>
+        <button id="btn-close-correction" class="correction-close">✕</button>
+      </div>
+      <div id="correction-content" class="correction-content"></div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
