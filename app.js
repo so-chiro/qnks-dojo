@@ -33,6 +33,7 @@
   const btnAdd = document.getElementById('btn-add');
   const btnSave = document.getElementById('btn-save');
   const btnSettings = document.getElementById('btn-settings');
+  const btnTemplate = document.getElementById('btn-template');
   const btnGenerateAnswer = document.getElementById('btn-generate-answer');
   const aiAnswerPanel = document.getElementById('ai-answer-panel');
   const btnAiCorrect = document.getElementById('btn-ai-correct');
@@ -102,6 +103,9 @@
     const sectionAi = document.getElementById('section-ai');
     if (sectionAi) {
       sectionAi.style.display = isTeacherMode() ? '' : 'none';
+    }
+    if (btnTemplate) {
+      btnTemplate.style.display = isTeacherMode() ? '' : 'none';
     }
   }
 
@@ -920,6 +924,125 @@
     }
   }
 
+  // ===== URL Template Feature =====
+  function loadFromUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    const k = params.get('k');
+
+    if (!q && !k) return false;
+
+    if (q) {
+      inputQTop.value = q;
+      questionText = q;
+
+      // Remove existing Q notes and add new one
+      const existingQ = notes.filter(n => n.type === 'question');
+      existingQ.forEach(n => deleteNote(n.id));
+      addNote(q, 'purple', 'question', 30, 30);
+    }
+
+    if (k) {
+      const keywords = k.split(',').map(kw => kw.trim()).filter(kw => kw);
+      inputK.value = keywords.join('\n');
+
+      const colors = ['pink', 'yellow', 'blue', 'green', 'purple'];
+      keywords.forEach((kw, i) => {
+        addNote(kw, colors[i % colors.length], 'keyword');
+      });
+    }
+
+    renderAll();
+    autoSave();
+    showToast('📝 テンプレートを読み込みました');
+
+    // Clean URL without reloading
+    window.history.replaceState({}, '', window.location.pathname);
+    return true;
+  }
+
+  function showTemplateModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'settings-modal';
+
+    const currentQ = inputQTop.value.trim();
+    const currentK = inputK.value.trim();
+
+    modal.innerHTML = `
+      <h3 class="modal-title">📝 テンプレートURL生成</h3>
+      <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px;">問いとキーワードを入力すると、生徒に配布できるURLが生成されます。</p>
+
+      <label class="settings-label">問い（Q）</label>
+      <input type="text" class="settings-input" id="tmpl-question"
+        placeholder="例：戦国の三英傑について説明しよう" value="${currentQ.replace(/"/g, '&quot;')}">
+
+      <label class="settings-label">キーワード（K）<span style="font-size:12px;color:var(--color-text-muted);">カンマ区切り</span></label>
+      <input type="text" class="settings-input" id="tmpl-keywords"
+        placeholder="例：織田信長,豊臣秀吉,徳川家康" value="${currentK.split('\n').join(',')}">
+
+      <label class="settings-label">📤 提出先URL（任意）</label>
+      <input type="text" class="settings-input" id="tmpl-submit-url"
+        placeholder="https://script.google.com/macros/s/..." value="${getSubmitUrl()}">
+      <p class="settings-hint">入れると生徒の設定に自動反映されます。</p>
+
+      <hr class="settings-divider">
+
+      <label class="settings-label">🔗 配布用URL</label>
+      <textarea class="sidebar-textarea" id="tmpl-result" rows="3" readonly
+        style="font-size:12px;word-break:break-all;background:rgba(0,0,0,0.3);cursor:text;"
+        placeholder="上を入力するとURLが生成されます"></textarea>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="tmpl-close">閉じる</button>
+        <button class="modal-btn modal-btn-submit" id="tmpl-generate">URL生成</button>
+        <button class="modal-btn modal-btn-submit" id="tmpl-copy" style="background:var(--color-green);">📋 コピー</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+
+    const close = () => { overlay.remove(); modal.remove(); };
+
+    const generateUrl = () => {
+      const q = modal.querySelector('#tmpl-question').value.trim();
+      const k = modal.querySelector('#tmpl-keywords').value.trim();
+      const submitUrl = modal.querySelector('#tmpl-submit-url').value.trim();
+
+      if (!q) { showToast('問いを入力してください'); return; }
+
+      const base = window.location.origin + window.location.pathname;
+      const params = new URLSearchParams();
+      params.set('q', q);
+      if (k) params.set('k', k);
+      if (submitUrl) params.set('url', submitUrl);
+
+      const url = base + '?' + params.toString();
+      modal.querySelector('#tmpl-result').value = url;
+    };
+
+    modal.querySelector('#tmpl-generate').addEventListener('click', generateUrl);
+
+    modal.querySelector('#tmpl-copy').addEventListener('click', () => {
+      const result = modal.querySelector('#tmpl-result').value;
+      if (!result) { showToast('先にURLを生成してください'); return; }
+      navigator.clipboard.writeText(result).then(() => {
+        showToast('📋 URLをコピーしました！');
+      }).catch(() => {
+        modal.querySelector('#tmpl-result').select();
+        document.execCommand('copy');
+        showToast('📋 URLをコピーしました！');
+      });
+    });
+
+    modal.querySelector('#tmpl-close').addEventListener('click', close);
+    overlay.addEventListener('click', close);
+    setTimeout(() => modal.querySelector('#tmpl-question').focus(), 100);
+  }
+
   // ===== Event Listeners =====
   btnReset.addEventListener('click', resetAll);
   btnUndo.addEventListener('click', undo);
@@ -928,6 +1051,7 @@
   btnAdd.addEventListener('click', showAddModal);
   btnSave.addEventListener('click', saveToLocalStorage);
   btnSettings.addEventListener('click', showSettingsModal);
+  btnTemplate.addEventListener('click', showTemplateModal);
 
   btnApplyQTop.addEventListener('click', applyQuestion);
   inputQTop.addEventListener('keydown', (e) => {
@@ -957,6 +1081,19 @@
     loadFromLocalStorage();
     renderAll();
     applyTeacherMode();
+
+    // Load URL template params (overrides saved data)
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('q') || params.has('k')) {
+      loadFromUrlParams();
+    }
+
+    // Auto-set submit URL from URL param
+    const urlParam = params.get('url');
+    if (urlParam && !getSubmitUrl()) {
+      setSetting('submit_url', urlParam);
+      showToast('📤 提出先URLが設定されました');
+    }
 
     if (!getApiKey()) {
       const hint = aiAnswerPanel.querySelector('.ai-placeholder');
