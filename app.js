@@ -1016,8 +1016,10 @@
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
     const k = params.get('k');
+    const key = params.get('key');
+    const provider = params.get('provider');
 
-    if (!q && !k) return false;
+    if (!q && !k && !key) return false;
 
     if (q) {
       inputQTop.value = q;
@@ -1037,6 +1039,15 @@
       keywords.forEach((kw, i) => {
         addNote(kw, colors[i % colors.length], 'keyword');
       });
+    }
+
+    // Auto-set API key and provider
+    if (key) {
+      setSetting('api_key', key);
+      showToast('🔑 APIキーが自動設定されました');
+    }
+    if (provider) {
+      setSetting('ai_provider', provider);
     }
 
     renderAll();
@@ -1075,6 +1086,18 @@
         placeholder="https://script.google.com/macros/s/..." value="${getSubmitUrl()}">
       <p class="settings-hint">入れると生徒の設定に自動反映されます。</p>
 
+      <label class="settings-label">🔑 APIキー（任意）</label>
+      <input type="text" class="settings-input" id="tmpl-api-key"
+        placeholder="AIxxx... or sk-xxx..." value="${getApiKey()}">
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+        <label style="font-size:12px;color:var(--color-text-muted);">プロバイダー:</label>
+        <select class="settings-input" id="tmpl-provider" style="flex:1;padding:4px 8px;">
+          <option value="gemini" ${getProvider() === 'gemini' ? 'selected' : ''}>Gemini</option>
+          <option value="openai" ${getProvider() === 'openai' ? 'selected' : ''}>OpenAI</option>
+        </select>
+      </div>
+      <p class="settings-hint">入れると生徒がキー設定不要になります。</p>
+
       <hr class="settings-divider">
 
       <label class="settings-label">🔗 配布用URL</label>
@@ -1098,6 +1121,8 @@
       const q = modal.querySelector('#tmpl-question').value.trim();
       const k = modal.querySelector('#tmpl-keywords').value.trim();
       const submitUrl = modal.querySelector('#tmpl-submit-url').value.trim();
+      const apiKey = modal.querySelector('#tmpl-api-key').value.trim();
+      const provider = modal.querySelector('#tmpl-provider').value;
 
       if (!q) { showToast('問いを入力してください'); return; }
 
@@ -1106,6 +1131,10 @@
       params.set('q', q);
       if (k) params.set('k', k);
       if (submitUrl) params.set('url', submitUrl);
+      if (apiKey) {
+        params.set('key', apiKey);
+        params.set('provider', provider);
+      }
 
       const url = base + '?' + params.toString();
       modal.querySelector('#tmpl-result').value = url;
@@ -1171,7 +1200,7 @@
 
     // Load URL template params (overrides saved data)
     const params = new URLSearchParams(window.location.search);
-    if (params.has('q') || params.has('k')) {
+    if (params.has('q') || params.has('k') || params.has('key')) {
       loadFromUrlParams();
     }
 
